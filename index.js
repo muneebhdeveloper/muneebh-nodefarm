@@ -125,7 +125,7 @@ app.put("/api/v1/tours/:id", function (req, res) {
       } else {
         res.status(400).json({
           status: "error",
-          message: "Unable to delete the tour",
+          message: "Unable to update the tour",
         });
       }
     }
