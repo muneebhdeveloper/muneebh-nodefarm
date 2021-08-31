@@ -2,7 +2,27 @@ const Tour = require("./../models/tourModel");
 
 const getAllTours = async (req, res) => {
   try {
-    const tours = await Tour.find();
+    console.log(req.query);
+
+    // Build the query
+    const dbQuery = { ...req.query };
+    const excludedKeys = ["page", "sort", "limit", "fields"];
+    excludedKeys.forEach((el) => delete dbQuery[el]);
+
+    // Advanced Filtering
+    let dbQueryFilter = JSON.stringify(dbQuery);
+    dbQueryFilter = dbQueryFilter.replace(
+      /\b(gte|gt|lte|lt)\b/g,
+      (match) => `$${match}`
+    );
+    dbQueryFilter = JSON.parse(dbQueryFilter);
+
+    console.log(dbQueryFilter);
+    // Pass the query
+    const query = Tour.find(dbQueryFilter);
+
+    // Execute the query
+    const tours = await query;
 
     res.status(200).json({
       status: "success",
