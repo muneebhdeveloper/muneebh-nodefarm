@@ -2,8 +2,6 @@ const Tour = require("./../models/tourModel");
 
 const getAllTours = async (req, res) => {
   try {
-    console.log(req.query);
-
     // Build the query
     const dbQuery = { ...req.query };
     const excludedKeys = ["page", "sort", "limit", "fields"];
@@ -17,9 +15,37 @@ const getAllTours = async (req, res) => {
     );
     dbQueryFilter = JSON.parse(dbQueryFilter);
 
-    console.log(dbQueryFilter);
     // Pass the query
-    const query = Tour.find(dbQueryFilter);
+    let query = Tour.find(dbQueryFilter);
+
+    // Sorting
+    if (req.query.sort) {
+      const sortBy = req.query.sort.split(",").join(" ");
+      query = query.sort(sortBy);
+    } else {
+      query = query.sort("-createdAt");
+    }
+
+    // Fields Limiting
+    if (req.query.fields) {
+      const fields = req.query.fields.split(",").join(" ");
+      query = query.select(fields);
+    } else {
+      query = query.select("-__v");
+    }
+
+    // Pagination and Results Limiting
+
+    const page = req.query.page * 1 || 1;
+    const limit = req.query.limit * 1 || 100;
+    const skip = (page - 1) * limit;
+
+    query = query.skip(skip).limit(limit);
+
+    if (req.query.page) {
+      const numTours = await Tour.countDocuments();
+      if (skip >= numTours) throw new Error("There are no tours left");
+    }
 
     // Execute the query
     const tours = await query;
