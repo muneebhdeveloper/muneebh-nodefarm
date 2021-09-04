@@ -1,11 +1,14 @@
 const mongoose = require("mongoose");
 const slugify = require("slugify");
+const validator = require("validator");
 
 const tourSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
+      required: [true, "A tour must have name"],
+      minLength: [10, "Tour name must be equal or larger than 10 characters"],
+      maxLength: [40, "Tour name must be equal or shorter than 40 characters"],
       unique: true,
       trim: true,
     },
@@ -16,15 +19,20 @@ const tourSchema = new mongoose.Schema(
     slug: String,
     duration: {
       type: Number,
-      required: true,
+      required: [true, "A tour must have duration"],
+      min: [1, "Duration must be equal or larger than 1"],
+      max: [7, "Duration must be equal or shorter than 7"],
     },
     maxGroupSize: {
       type: Number,
-      required: true,
+      required: [true, "A tour must have a Group Size"],
+      minlength: [2, "Group Size must be equal or larger than 2"],
     },
     ratingsAverage: {
       type: Number,
-      default: 0,
+      default: 1,
+      min: [1, "Rating must be equal or above 1.0"],
+      max: [5, "Rating must be equal or below 5.0"],
     },
     ratingsQuantity: {
       type: Number,
@@ -32,17 +40,31 @@ const tourSchema = new mongoose.Schema(
     },
     difficulty: {
       type: String,
-      required: true,
+      required: [true, "A tour must have a difficulty"],
+      enum: {
+        values: ["easy", "medium", "difficult"],
+        message: "Difficulty either be 'easy', 'medium' or 'difficult'",
+      },
     },
     price: {
       type: Number,
-      required: true,
+      required: [true, "A tour must have a price"],
+      minlength: [1, "Price must not be 0 or less"],
     },
-    priceDiscount: Number,
+    priceDiscount: {
+      type: Number,
+      validate: {
+        validator: function (value) {
+          // (this) only works with New Document Creation
+          return value < this.price;
+        },
+        message: "Price discount must be less than Actual Price",
+      },
+    },
     summary: {
       type: String,
       trim: true,
-      required: true,
+      required: [true, "A tour must have some summary"],
     },
     description: {
       type: String,
@@ -50,7 +72,7 @@ const tourSchema = new mongoose.Schema(
     },
     imageCover: {
       type: String,
-      required: true,
+      required: [true, "A tour must have Image Cover"],
     },
     images: [String],
     startDates: [Date],

@@ -8,7 +8,8 @@
     "express": "^4.17.1",
     "mongoose": "^6.0.2",
     "morgan": "^1.10.0",
-    "slugify": "^1.6.0"
+    "slugify": "^1.6.0",
+    "validator": "^13.6.0"
   },
   "devDependencies": {},
   "scripts": {
