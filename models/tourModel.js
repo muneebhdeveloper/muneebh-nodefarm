@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const slugify = require("slugify");
 
 const tourSchema = new mongoose.Schema(
   {
@@ -8,6 +9,11 @@ const tourSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    isSecret: {
+      type: Boolean,
+      default: false,
+    },
+    slug: String,
     duration: {
       type: Number,
       required: true,
@@ -50,9 +56,33 @@ const tourSchema = new mongoose.Schema(
     startDates: [Date],
   },
   {
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
     timestamps: true,
   }
 );
+
+tourSchema.virtual("durationWeeks").get(function () {
+  return this.duration / 7;
+});
+
+// Document Middleware
+tourSchema.pre("save", function (next) {
+  this.slug = slugify(this.name, { lower: true });
+  next();
+});
+
+// Query Middleware
+tourSchema.pre(/^find/, function (next) {
+  this.find({ isSecret: { $ne: true } });
+  next();
+});
+
+// Aggregation Middleware
+tourSchema.pre("aggregate", function (next) {
+  this.pipeline().unshift({ $match: { isSecret: { $ne: true } } });
+  next();
+});
 
 const Tour = new mongoose.model("Tour", tourSchema);
 

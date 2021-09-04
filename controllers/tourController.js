@@ -1,6 +1,12 @@
 const Tour = require("./../models/tourModel");
 
-const getAllTours = async (req, res) => {
+exports.aliasTopFive = async (req, res, next) => {
+  req.query.limit = 5;
+  req.query.sort = "-ratingsAverage,price";
+  next();
+};
+
+exports.getAllTours = async (req, res) => {
   try {
     // Build the query
     const dbQuery = { ...req.query };
@@ -35,7 +41,6 @@ const getAllTours = async (req, res) => {
     }
 
     // Pagination and Results Limiting
-
     const page = req.query.page * 1 || 1;
     const limit = req.query.limit * 1 || 100;
     const skip = (page - 1) * limit;
@@ -65,7 +70,7 @@ const getAllTours = async (req, res) => {
   }
 };
 
-const getTourById = async (req, res) => {
+exports.getTourById = async (req, res) => {
   try {
     const tour = await Tour.findById(req.params.id);
 
@@ -84,7 +89,7 @@ const getTourById = async (req, res) => {
   }
 };
 
-const addTour = async (req, res) => {
+exports.addTour = async (req, res) => {
   try {
     const newTour = await Tour.create(req.body);
 
@@ -102,7 +107,7 @@ const addTour = async (req, res) => {
   }
 };
 
-const deleteTour = async (req, res) => {
+exports.deleteTour = async (req, res) => {
   try {
     const tour = await Tour.findByIdAndDelete(req.params.id);
 
@@ -120,7 +125,7 @@ const deleteTour = async (req, res) => {
   }
 };
 
-const updateTour = async (req, res) => {
+exports.updateTour = async (req, res) => {
   try {
     const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -141,10 +146,81 @@ const updateTour = async (req, res) => {
   }
 };
 
-module.exports = {
-  getAllTours,
-  getTourById,
-  addTour,
-  deleteTour,
-  updateTour,
+exports.getToursStats = async (req, res) => {
+  try {
+    const stats = await Tour.aggregate([
+      {
+        $match: { ratingsAverage: { $gte: 4.5 } },
+      },
+      {
+        $group: {
+          _id: "$difficulty",
+          numTours: { $sum: 1 },
+          numRatings: { $sum: "$ratingsQuantity" },
+          avgRatings: { $avg: "$ratingsAverage" },
+          avgPrice: { $avg: "$price" },
+          minPrice: { $min: "$price" },
+          maxPrice: { $max: "$price" },
+        },
+      },
+    ]);
+    res.status(200).json({
+      status: "success",
+      updatedTour: {
+        stats,
+      },
+    });
+  } catch (err) {
+    res.status(404).json({
+      status: "error",
+      message: err,
+    });
+  }
+};
+
+exports.getMonthlyPlan = async (req, res) => {
+  try {
+    const year = req.params.year * 1;
+    const plan = await Tour.aggregate([
+      {
+        $unwind: "$startDates",
+      },
+      {
+        $match: {
+          startDates: {
+            $gte: new Date(`${year}-01-01`),
+            $lte: new Date(`${year}-12-31`),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { $month: "$startDates" },
+          numToursStart: { $sum: 1 },
+          tours: { $push: "$name" },
+        },
+      },
+      {
+        $addFields: { month: "$_id" },
+      },
+      {
+        $project: { _id: 0 },
+      },
+      {
+        $sort: { numToursStart: -1 },
+      },
+    ]);
+
+    res.status(200).json({
+      status: "success",
+      updatedTour: {
+        plan,
+      },
+    });
+  } catch (err) {
+    res.status(404).json({
+      status: "error",
+      message: err,
+    });
+  }
 };
