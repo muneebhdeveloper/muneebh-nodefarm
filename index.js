@@ -3,6 +3,7 @@ const express = require("express");
 const morgan = require("morgan");
 const mongoose = require("mongoose");
 const tourRouter = require("./routes/tourRouter");
+const userRouter = require("./routes/userRouter");
 
 dotenv.config({ path: `./config.env` });
 
@@ -29,6 +30,14 @@ if (process.env.NODE_ENV === "development") {
 app.use(express.json());
 
 app.use("/api/v1/tours", tourRouter);
+app.use("/api/v1/users", userRouter);
+
+app.all("*", (req, res) => {
+  res.status(404).json({
+    status: "fail",
+    message: `Can't find any route for ${req.originalUrl} on this server`,
+  });
+});
 
 const PORT = process.env.PORT || 8000;
 
