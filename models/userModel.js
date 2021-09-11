@@ -22,6 +22,7 @@ const userSchema = mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
       minlength: [8, "Password must be minimum 8 characters"],
+      select: false,
     },
     passwordConfirm: {
       type: String,
@@ -33,9 +34,30 @@ const userSchema = mongoose.Schema(
         message: "Password doesn't match",
       },
     },
+    passwordChangedAt: Date,
   },
   { timestamps: true }
 );
+
+userSchema.methods.changedPasswordAfterToken = (JwtTimestamp) => {
+  if (this.passwordChangedAt) {
+    const passwordChangedAtInSec = parseInt(
+      new Date(this.passwordChangedAt).getTime() / 1000,
+      10
+    );
+
+    return JwtTimestamp < passwordChangedAtInSec;
+  }
+
+  return false;
+};
+
+userSchema.methods.correctPassword = async (
+  candidatePassword,
+  userPassword
+) => {
+  return await bcrypt.compare(candidatePassword, userPassword);
+};
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
