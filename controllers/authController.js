@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const { promisify } = require("util");
 const sendEmail = require("../utils/email");
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -217,4 +218,48 @@ exports.resetPassword = async (req, res) => {
     status: "success",
     token,
   });
+};
+
+exports.updatePassword = async (req, res, next) => {
+  try {
+    // Get the user from Collection
+    const token = req.headers.authorization.split(" ")[1];
+    const verifyToken = await promisify(jwt.verify)(
+      token,
+      process.env.JWT_SECRET
+    );
+
+    const user = await User.findById(verifyToken.id).select("+password");
+
+    // Check if POSTed password is correct
+    const isCurrentPassword = await bcrypt.compare(
+      req.body.currentPassword,
+      user.password
+    );
+
+    if (!isCurrentPassword) {
+      return res.status(404).json({
+        status: "fail",
+        message: "Invalid current password",
+      });
+    }
+
+    // If correct, then update the password
+    user.password = req.body.password;
+    user.passwordConfirm = req.body.passwordConfirm;
+    await user.save();
+
+    // Log user in, send JWT
+    const newToken = signToken(user._id);
+
+    res.status(200).json({
+      status: "success",
+      token: newToken,
+    });
+  } catch (err) {
+    res.status(404).json({
+      status: "error",
+      message: err,
+    });
+  }
 };
