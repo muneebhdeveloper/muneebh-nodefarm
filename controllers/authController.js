@@ -78,7 +78,6 @@ exports.protect = async (req, res, next) => {
     req.headers.authorization.startsWith("Bearer")
   ) {
     authToken = req.headers.authorization.split(" ")[1];
-    console.log(authToken);
   }
 
   if (!authToken) {
@@ -95,7 +94,7 @@ exports.protect = async (req, res, next) => {
   );
 
   // Checks if user exist
-  const userExist = User.findById(verifyToken.id);
+  const userExist = await User.findById(verifyToken.id);
   if (!userExist) {
     return res.status(401).json({
       status: "fail",
