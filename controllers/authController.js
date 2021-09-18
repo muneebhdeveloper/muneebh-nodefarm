@@ -60,9 +60,10 @@ exports.login = async (req, res) => {
 
     const token = signToken(user._id);
 
-    res.status(200).json({
+    res.status(201).json({
       status: "Success",
       token,
+      data: user,
     });
   } catch (err) {
     res.status(404).json({
@@ -223,13 +224,13 @@ exports.resetPassword = async (req, res) => {
 exports.updatePassword = async (req, res, next) => {
   try {
     // Get the user from Collection
-    const token = req.headers.authorization.split(" ")[1];
-    const verifyToken = await promisify(jwt.verify)(
-      token,
-      process.env.JWT_SECRET
-    );
+    // const token = req.headers.authorization.split(" ")[1];
+    // const verifyToken = await promisify(jwt.verify)(
+    //   token,
+    //   process.env.JWT_SECRET
+    // );
 
-    const user = await User.findById(verifyToken.id).select("+password");
+    const user = await User.findById(req.user.id).select("+password");
 
     // Check if POSTed password is correct
     const isCurrentPassword = await bcrypt.compare(
@@ -238,7 +239,7 @@ exports.updatePassword = async (req, res, next) => {
     );
 
     if (!isCurrentPassword) {
-      return res.status(404).json({
+      return res.status(401).json({
         status: "fail",
         message: "Invalid current password",
       });
@@ -248,13 +249,15 @@ exports.updatePassword = async (req, res, next) => {
     user.password = req.body.password;
     user.passwordConfirm = req.body.passwordConfirm;
     await user.save();
+    user.password = undefined;
 
     // Log user in, send JWT
     const newToken = signToken(user._id);
 
-    res.status(200).json({
+    res.status(201).json({
       status: "success",
       token: newToken,
+      data: user,
     });
   } catch (err) {
     res.status(404).json({
