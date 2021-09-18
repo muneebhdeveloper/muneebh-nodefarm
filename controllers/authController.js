@@ -1,6 +1,7 @@
 const User = require("./../models/userModel");
 const jwt = require("jsonwebtoken");
 const { promisify } = require("util");
+const sendEmail = require("../utils/email");
 
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -129,3 +130,59 @@ exports.restrictTo = (...roles) => {
     next();
   };
 };
+
+exports.forgetPassword = async (req, res) => {
+  try {
+    if (!req.body.email) {
+      return res.status(401).json({
+        status: "error",
+        message: "Please provide your email address",
+      });
+    }
+
+    const user = await User.findOne({ email: req.body.email });
+
+    if (!user) {
+      return res.status(401).json({
+        status: "fail",
+        message: "Email doesn't' exist",
+      });
+    }
+
+    const resetToken = user.createPasswordResetToken();
+
+    await user.save({ validateBeforeSave: false });
+
+    const message = `Click the link below \n ${req.protocol}://${req.hostname}/resetPassword/${resetToken}`;
+
+    // Sending the link to the user for Password Reset
+    try {
+      const mailFormat = {
+        email: user.email,
+        subject: "Your password reset token (Valid for 10 min)",
+        message,
+      };
+
+      await sendEmail(mailFormat);
+      return res.status(200).json({
+        status: "success",
+        message: "Password reset token send to your email",
+      });
+    } catch (err) {
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+      await user.save({ validateBeforeSave: false });
+      res.status(500).json({
+        status: "fail",
+        message: "Something went wrong on the server side, Please try again",
+      });
+    }
+  } catch (err) {
+    res.status(404).json({
+      status: "error",
+      message: err,
+    });
+  }
+};
+
+exports.resetPassword = (req, res) => {};
