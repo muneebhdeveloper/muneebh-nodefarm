@@ -3,6 +3,9 @@ const express = require("express");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
+const xss = require("xss-clean");
+const mongoSanitize = require("express-mongo-sanitize");
+const hpp = require("hpp");
 const mongoose = require("mongoose");
 const tourRouter = require("./routes/tourRouter");
 const userRouter = require("./routes/userRouter");
@@ -34,6 +37,26 @@ const limiter = rateLimit({
 });
 
 app.use("/api", limiter);
+
+// Middleware to prevent NoSQL Query Injections
+app.use(mongoSanitize());
+
+// Middleware to prevent cross site scripting
+app.use(xss());
+
+// Middleware to prevent Parameter pollution
+app.use(
+  hpp({
+    whitelist: [
+      "duration",
+      "ratingsQuantity",
+      "ratingsAverage",
+      "maxGroupSize",
+      "difficulty",
+      "price",
+    ],
+  })
+);
 
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
