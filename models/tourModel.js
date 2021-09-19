@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const slugify = require("slugify");
 const validator = require("validator");
+const User = require("./userModel");
 
 const tourSchema = new mongoose.Schema(
   {
@@ -13,7 +14,7 @@ const tourSchema = new mongoose.Schema(
       trim: true,
       validate: {
         validator: function (val) {
-          return validator.isAlpha(val, "en-US");
+          return validator.isAlpha(val, "en-US", { ignore: " " });
         },
         message: "Tour name can only contains character",
       },
@@ -27,7 +28,7 @@ const tourSchema = new mongoose.Schema(
       type: Number,
       required: [true, "A tour must have duration"],
       min: [1, "Duration must be equal or larger than 1"],
-      max: [7, "Duration must be equal or shorter than 7"],
+      max: [14, "Duration must be equal or shorter than 14"],
     },
     maxGroupSize: {
       type: Number,
@@ -82,6 +83,30 @@ const tourSchema = new mongoose.Schema(
     },
     images: [String],
     startDates: [Date],
+    startLocation: {
+      type: {
+        type: String,
+        default: "Point",
+        enum: ["Point"],
+      },
+      coordinates: [Number],
+      address: String,
+      description: String,
+    },
+    locations: [
+      {
+        type: {
+          type: String,
+          default: "Point",
+          enum: ["Point"],
+        },
+        coordinates: [Number],
+        address: String,
+        description: String,
+        day: Number,
+      },
+    ],
+    guides: Array,
   },
   {
     toJSON: { virtuals: true },
@@ -97,6 +122,13 @@ tourSchema.virtual("durationWeeks").get(function () {
 // Document Middleware
 tourSchema.pre("save", function (next) {
   this.slug = slugify(this.name, { lower: true });
+  next();
+});
+
+tourSchema.pre("save", async function (next) {
+  const guidePromises = this.guides.map(async (id) => await User.findById(id));
+  this.guides = await Promise.all(guidePromises);
+
   next();
 });
 
