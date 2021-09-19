@@ -74,6 +74,8 @@ exports.login = async (req, res) => {
       });
     }
 
+    user.password = undefined;
+
     createSendToken(res, { id: user._id, statusCode: 201, data: user });
   } catch (err) {
     res.status(404).json({

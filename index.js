@@ -1,6 +1,7 @@
 const dotenv = require("dotenv");
 const express = require("express");
 const morgan = require("morgan");
+const rateLimit = require("express-rate-limit");
 const mongoose = require("mongoose");
 const tourRouter = require("./routes/tourRouter");
 const userRouter = require("./routes/userRouter");
@@ -22,6 +23,14 @@ mongoose
   });
 
 const app = express();
+
+const limiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: "Too many request for this IP, Please try again in 1 hour",
+});
+
+app.use("/api", limiter);
 
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
