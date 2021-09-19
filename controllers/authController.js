@@ -11,6 +11,28 @@ const signToken = (id) => {
   });
 };
 
+const createSendToken = (res, options) => {
+  const token = signToken(options.id);
+  const cookieOptions = {
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ),
+    httpOnly: true,
+  };
+
+  if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
+
+  res.cookie("jwt", token, cookieOptions);
+
+  res.status(options.statusCode).json({
+    status: "success",
+    token,
+    data: {
+      user: options.data,
+    },
+  });
+};
+
 exports.signup = async (req, res) => {
   try {
     const newUser = await User.create({
@@ -20,13 +42,7 @@ exports.signup = async (req, res) => {
       passwordConfirm: req.body.passwordConfirm,
     });
 
-    const token = signToken(newUser._id);
-
-    res.status(201).json({
-      status: "success",
-      token,
-      user: newUser,
-    });
+    createSendToken(res, { id: newUser._id, statusCode: 201, data: newUser });
   } catch (err) {
     res.status(404).json({
       status: "error",
@@ -58,13 +74,7 @@ exports.login = async (req, res) => {
       });
     }
 
-    const token = signToken(user._id);
-
-    res.status(201).json({
-      status: "Success",
-      token,
-      data: user,
-    });
+    createSendToken(res, { id: user._id, statusCode: 201, data: user });
   } catch (err) {
     res.status(404).json({
       status: "fail",
@@ -113,8 +123,6 @@ exports.protect = async (req, res, next) => {
       message: "User has changed password, Please log in again",
     });
   }
-
-  console.log(verifyToken);
 
   req.user = userExist;
 
@@ -213,12 +221,7 @@ exports.resetPassword = async (req, res) => {
   user.passwordResetExpires = undefined;
   await user.save();
 
-  const token = signToken(user._id);
-
-  res.status(200).json({
-    status: "success",
-    token,
-  });
+  createSendToken(res, { id: user._id, statusCode: 200, data: user });
 };
 
 exports.updatePassword = async (req, res, next) => {
@@ -252,13 +255,7 @@ exports.updatePassword = async (req, res, next) => {
     user.password = undefined;
 
     // Log user in, send JWT
-    const newToken = signToken(user._id);
-
-    res.status(201).json({
-      status: "success",
-      token: newToken,
-      data: user,
-    });
+    createSendToken(res, { id: user._id, statusCode: 200, data: user });
   } catch (err) {
     res.status(404).json({
       status: "error",
