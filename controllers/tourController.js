@@ -72,7 +72,7 @@ exports.getAllTours = async (req, res) => {
 
 exports.getTourById = async (req, res) => {
   try {
-    const tour = await Tour.findById(req.params.id).populate("guides");
+    const tour = await Tour.findById(req.params.id);
 
     res.status(200).json({
       status: "success",

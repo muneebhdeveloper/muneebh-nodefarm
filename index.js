@@ -9,6 +9,7 @@ const hpp = require("hpp");
 const mongoose = require("mongoose");
 const tourRouter = require("./routes/tourRouter");
 const userRouter = require("./routes/userRouter");
+const reviewRouter = require("./routes/reviewRouter");
 
 dotenv.config({ path: `./config.env` });
 
@@ -66,6 +67,7 @@ app.use(express.json({ limit: "10kb" }));
 
 app.use("/api/v1/tours", tourRouter);
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/reviews", reviewRouter);
 
 app.all("*", (req, res) => {
   res.status(404).json({

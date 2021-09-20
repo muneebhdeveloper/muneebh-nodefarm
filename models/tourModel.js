@@ -106,7 +106,7 @@ const tourSchema = new mongoose.Schema(
         day: Number,
       },
     ],
-    guides: [{ type: mongoose.Schema.Types.ObjectId, ref: User }],
+    guides: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
   {
     toJSON: { virtuals: true },
@@ -144,6 +144,15 @@ tourSchema.pre("aggregate", function (next) {
   next();
 });
 
-const Tour = new mongoose.model("Tour", tourSchema);
+tourSchema.pre(/^find/, function (next) {
+  this.populate({
+    path: "guides",
+    select: "-__v -passwordChangedAt",
+  });
+
+  next();
+});
+
+const Tour = mongoose.model("Tour", tourSchema);
 
 module.exports = Tour;
