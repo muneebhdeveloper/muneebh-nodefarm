@@ -4,7 +4,13 @@ const authController = require("./../controllers/authController");
 
 const reviewRouter = express.Router();
 
-reviewRouter.get("/", authController.protect, reviewController.getAllReviews);
-reviewRouter.post("/", authController.protect, reviewController.createReview);
+reviewRouter
+  .route("/")
+  .get(authController.protect, reviewController.getAllReviews)
+  .post(
+    authController.protect,
+    authController.restrictTo("user"),
+    reviewController.createReview
+  );
 
 module.exports = reviewRouter;
