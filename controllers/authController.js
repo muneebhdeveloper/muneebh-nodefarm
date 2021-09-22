@@ -144,6 +144,13 @@ exports.restrictTo = (...roles) => {
   };
 };
 
+exports.getUserAndTourId = (req, res, next) => {
+  if (!req.body.tour) req.body.tour = req.params.tourId;
+  if (!req.body.user) req.body.user = req.user.id;
+
+  next();
+};
+
 exports.forgetPassword = async (req, res) => {
   try {
     if (!req.body.email) {
