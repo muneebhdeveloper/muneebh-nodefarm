@@ -138,6 +138,8 @@ tourSchema.pre("save", function (next) {
 //   next();
 // });
 
+// Need to implement APIFeatures and Indexes
+
 // Query Middleware
 tourSchema.pre(/^find/, function (next) {
   this.find({ isSecret: { $ne: true } });
